@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  username     String       @unique
+  email        String       @unique
+  passwordHash String
+  submissions  Submission[]
+  problems     Problem[]    // Authored problems
+  createdAt    DateTime     @default(now())
+}
+
+model Problem {
+  id            Int          @id @default(autoincrement())
+  title         String
+  statement     String
+  timeLimitMs   Int          @default(1000)
+  memoryLimitKb Int          @default(262144) // 256 MB
+  authorId      Int
+  author        User         @relation(fields: [authorId], references: [id])
+  testCases     TestCase[]
+  submissions   Submission[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model TestCase {
+  id             Int      @id @default(autoincrement())
+  problemId      Int
+  problem        Problem  @relation(fields: [problemId], references: [id])
+  input          String   @db.Text
+  expectedOutput String   @db.Text
+  isHidden       Boolean  @default(true) // Hidden from users, used for final evaluation
+  createdAt      DateTime @default(now())
+}
+
+model Submission {
+  id          Int      @id @default(autoincrement())
+  problemId   Int
+  problem     Problem  @relation(fields: [problemId], references: [id])
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  language    String   // 'cpp', 'java', 'python'
+  sourceCode  String   @db.Text
+  
+  // Job Lifecycle Status
+  status      SubmissionStatus @default(QUEUED)
+  
+  // CP Verdict
+  verdict     Verdict? 
+  
+  timeMs      Int?
+  memoryKb    Int?
+  errorOutput String?  @db.Text // For CE or RE
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum SubmissionStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  SYSTEM_ERROR
+}
+
+enum Verdict {
+  AC  // Accepted
+  WA  // Wrong Answer
+  TLE // Time Limit Exceeded
+  MLE // Memory Limit Exceeded
+  RE  // Runtime Error
+  CE  // Compile Error
+}

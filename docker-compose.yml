@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: cp_judge_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: cp_judge
+    ports:
+      - "5432:5432"
+    volumes:
+      - cp_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: cp_judge_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  cp_pgdata:
