@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "api": "tsx src/index.ts",
+    "worker": "cross-env PROCESS_TYPE=worker tsx src/index.ts",
+    "test": "tsx tests/run_tests.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +27,7 @@
     "@types/node": "^26.5.0",
     "@types/ws": "^8.18.1",
     "axios": "^1.20.0",
+    "cross-env": "^10.1.0",
     "prisma": "^6.19.3",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"

@@ -40,7 +40,7 @@ export class StandbyPoolManager {
         // We set generous limit here and use timeout command for CPU, or we can use generic limits.
         // The prompt says "native cgroup tracking", so --memory=256m
         // Process limit --pids-limit 64 to prevent fork bombs.
-        const cmd = `docker create --network none --memory=256m --pids-limit=64 --cap-drop=ALL -i gcc:latest bash`;
+        const cmd = `docker run -d --network none --memory=256m --pids-limit=64 --cap-drop=ALL gcc:latest sleep infinity`;
         const { stdout } = await execAsync(cmd);
         return stdout.trim();
     }
