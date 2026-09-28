@@ -6,7 +6,8 @@
   "scripts": {
     "api": "tsx src/index.ts",
     "worker": "cross-env PROCESS_TYPE=worker tsx src/index.ts",
-    "test": "tsx tests/run_tests.ts"
+    "test": "tsx tests/run_tests.ts",
+    "submit": "tsx scripts/submit.ts"
   },
   "keywords": [],
   "author": "",

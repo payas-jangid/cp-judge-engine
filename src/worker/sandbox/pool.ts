@@ -14,7 +14,41 @@ export class StandbyPoolManager {
 
     public async initialize() {
         console.log(`Initializing Standby Pool Manager with size ${this.poolSize}...`);
+        await this.cleanupOrphans();
+        this.registerShutdownHooks();
         await this.fillPool();
+    }
+
+    // Clean up any stale sandbox containers left over from previous runs
+    public async cleanupOrphans() {
+        try {
+            const { stdout } = await execAsync('docker ps -aq --filter label=cp-judge-sandbox=true');
+            const ids = stdout.trim().split(/\s+/).filter(Boolean);
+            if (ids.length > 0) {
+                console.log(`Cleaning up ${ids.length} orphaned sandbox container(s)...`);
+                await execAsync(`docker rm -f ${ids.join(' ')}`);
+            }
+        } catch (err) {
+            // Ignore if none found or error
+        }
+    }
+
+    // Clean up all currently active standby containers
+    public async cleanupAll() {
+        console.log('Shutting down standby sandbox containers...');
+        const containers = [...this.readyContainers];
+        this.readyContainers = [];
+        await Promise.all(containers.map(id => this.destroyContainer(id)));
+    }
+
+    private registerShutdownHooks() {
+        const handleExit = async () => {
+            await this.cleanupAll();
+            process.exit(0);
+        };
+
+        process.once('SIGINT', handleExit);
+        process.once('SIGTERM', handleExit);
     }
 
     private async fillPool() {
@@ -35,12 +69,7 @@ export class StandbyPoolManager {
     }
 
     private async createNewContainer(): Promise<string> {
-        // Base image: ubuntu with g++ (we'll just use gcc:latest for now)
-        // Memory limit using cgroups native --memory. 
-        // We set generous limit here and use timeout command for CPU, or we can use generic limits.
-        // The prompt says "native cgroup tracking", so --memory=256m
-        // Process limit --pids-limit 64 to prevent fork bombs.
-        const cmd = `docker run -d --network none --memory=256m --pids-limit=64 --cap-drop=ALL gcc:latest sleep infinity`;
+        const cmd = `docker run -d --label cp-judge-sandbox=true --network none --memory=256m --pids-limit=64 --cap-drop=ALL gcc:latest sleep infinity`;
         const { stdout } = await execAsync(cmd);
         return stdout.trim();
     }
@@ -68,4 +97,5 @@ export class StandbyPoolManager {
     }
 }
 
-export const sandboxPool = new StandbyPoolManager(3);
+const defaultPoolSize = parseInt(process.env.SANDBOX_POOL_SIZE || '2', 10);
+export const sandboxPool = new StandbyPoolManager(defaultPoolSize);
